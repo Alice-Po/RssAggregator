@@ -4,7 +4,7 @@ const CONFIG = require('../config/config');
 const urlJoin = require('url-join');
 
 module.exports = {
-  name: 'subscriptions',
+  name: 'rss-feeds',
   mixins: [PodResourcesHandlerMixin],
   settings: {
     type: 'as:Service',
@@ -50,8 +50,8 @@ module.exports = {
   },
   actions: {
     async checkFeed(ctx) {
-      const { subscription } = ctx.params;
-      this.logger.info(`Checking RSS feed: ${subscription['apods:url']}`);
+      const { feed } = ctx.params;
+      this.logger.info(`Checking RSS feed: ${feed['apods:url']}`);
     }
   },
   methods: {
@@ -74,8 +74,8 @@ module.exports = {
       await ctx.call('timer.set', {
         key: [resource.id, 'check'],
         time: new Date(),
-        actionName: 'subscriptions.checkFeed',
-        params: { subscription: resource }
+        actionName: 'rss-feeds.checkFeed',
+        params: { feed: resource }
       });
     },
     async onUpdate(ctx, resource, actorUri) {

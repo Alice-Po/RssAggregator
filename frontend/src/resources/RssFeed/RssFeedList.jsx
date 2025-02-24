@@ -1,7 +1,7 @@
 import React from 'react';
 import { List, Datagrid, TextField, DateField, EditButton, ShowButton } from 'react-admin';
 
-const SubscriptionList = () => (
+const RssFeedList = () => (
   <List sort={{ field: 'dc:created', order: 'DESC' }}>
     <Datagrid rowClick="show">
       <TextField source="apods:name" />
@@ -13,4 +13,4 @@ const SubscriptionList = () => (
   </List>
 );
 
-export default SubscriptionList;
+export default RssFeedList;

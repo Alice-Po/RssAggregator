@@ -1,2 +1,2 @@
 export { default as Contact } from './Contact';
-export { default as Subscription } from './Subscription';
+export { default as RssFeed } from './RssFeed';

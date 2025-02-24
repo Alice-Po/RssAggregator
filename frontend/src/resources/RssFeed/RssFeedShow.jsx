@@ -1,14 +1,14 @@
 import React from 'react';
 import { Show, SimpleShowLayout, TextField, DateField, TopToolbar, EditButton } from 'react-admin';
 
-const SubscriptionShowActions = () => (
+const RssFeedShowActions = () => (
   <TopToolbar>
     <EditButton />
   </TopToolbar>
 );
 
-const SubscriptionShow = () => (
-  <Show actions={<SubscriptionShowActions />}>
+const RssFeedShow = () => (
+  <Show actions={<RssFeedShowActions />}>
     <SimpleShowLayout>
       <TextField source="apods:name" />
       <TextField source="apods:url" />
@@ -18,4 +18,4 @@ const SubscriptionShow = () => (
   </Show>
 );
 
-export default SubscriptionShow;
+export default RssFeedShow;

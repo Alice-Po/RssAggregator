@@ -1,7 +1,7 @@
 import React from 'react';
 import { TextInput, required, SimpleForm } from 'react-admin';
 
-const SubscriptionForm = () => (
+const RssFeedForm = () => (
   <SimpleForm>
     <TextInput source="apods:name" fullWidth validate={[required()]} />
     <TextInput source="apods:url" fullWidth validate={[required()]} />
@@ -9,4 +9,4 @@ const SubscriptionForm = () => (
   </SimpleForm>
 );
 
-export default SubscriptionForm;
+export default RssFeedForm;
