@@ -22,10 +22,6 @@ module.exports = {
     accessNeeds: {
       required: [
         {
-          registeredClass: 'as:Event',
-          accessMode: ['acl:Read', 'acl:Write']
-        },
-        {
           registeredClass: 'as:Service',
           accessMode: ['acl:Read', 'acl:Write']
         },
@@ -44,14 +40,6 @@ module.exports = {
       optional: []
     },
     classDescriptions: {
-      'as:Event': {
-        label: {
-          en: 'Events',
-          fr: 'Événements'
-        },
-        labelPredicate: 'as:name',
-        openEndpoint: urlJoin(CONFIG.FRONT_URL, '/r')
-      },
       'as:Service': {
         label: {
           en: 'RSS Feeds',
