@@ -44,7 +44,7 @@ module.exports = {
       this.logger.info(`Using pod provider: ${podProviderUrl}`);
 
       // Utiliser le contexte par défaut pour l'utilisateur 'tara'
-      const username = 'tara';
+      const username = 'titi';
       const actorUri = urlJoin(podProviderUrl, username);
       const dataset = username;
 
@@ -143,7 +143,7 @@ module.exports = {
      */
     async parseFeed(ctx) {
       const { feed } = ctx.params;
-      let feedUrl = feed['apods:url'];
+      let feedUrl = feed['apods:feedUrl'] || feed['apods:url'];
 
       try {
         // Vérifier si l'URL est valide et trouver la bonne URL si nécessaire
@@ -205,11 +205,7 @@ module.exports = {
 
         return feedData;
       } catch (error) {
-        this.logger.error('Error while parsing feed:', {
-          url: feedUrl,
-          error: error.message,
-          stack: error.stack
-        });
+        this.logger.error('Error while parsing feed:', error);
         throw error;
       }
     },
@@ -408,6 +404,17 @@ module.exports = {
         if (await this.checkRssFeed(feedUrl)) {
           summary = `Flux RSS valide : ${feedUrl}`;
           this.logger.info(summary);
+          // Dans ce cas, l'URL du flux est la même que l'URL originale
+          await this.actions.patch(
+            {
+              resourceUri: resource.id || resource['@id'],
+              triplesToAdd: [
+                triple(namedNode(resource.id || resource['@id']), namedNode('apods:feedUrl'), literal(feedUrl))
+              ],
+              actorUri
+            },
+            { parentCtx: ctx }
+          );
         } else {
           // 2. Si ce n'est pas un flux RSS, essayer de trouver l'URL du flux
           this.logger.info(`Recherche du flux RSS pour : ${feedUrl}`);
@@ -415,23 +422,15 @@ module.exports = {
 
           if (foundUrl !== feedUrl && (await this.checkRssFeed(foundUrl))) {
             // Flux RSS trouvé à une autre URL
-            feedUrl = foundUrl;
-            summary = `Flux RSS trouvé et validé : ${feedUrl}`;
+            summary = `Flux RSS trouvé et validé : ${foundUrl}`;
             this.logger.info(summary);
 
-            // Mettre à jour l'URL dans la ressource
+            // Stocker l'URL du flux dans apods:feedUrl
             await this.actions.patch(
               {
                 resourceUri: resource.id || resource['@id'],
                 triplesToAdd: [
-                  triple(namedNode(resource.id || resource['@id']), namedNode('apods:url'), literal(feedUrl))
-                ],
-                triplesToRemove: [
-                  triple(
-                    namedNode(resource.id || resource['@id']),
-                    namedNode('apods:url'),
-                    literal(resource['apods:url'])
-                  )
+                  triple(namedNode(resource.id || resource['@id']), namedNode('apods:feedUrl'), literal(foundUrl))
                 ],
                 actorUri
               },
@@ -465,7 +464,12 @@ module.exports = {
           key: [resource.id, 'check'],
           time: new Date(),
           actionName: 'rss.parseFeed',
-          params: { feed: { ...resource, 'apods:url': feedUrl } }
+          params: {
+            feed: {
+              ...resource,
+              'apods:feedUrl': resource['apods:feedUrl'] || feedUrl
+            }
+          }
         });
       } catch (error) {
         this.logger.error('Error in onCreate:', error);
