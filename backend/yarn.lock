@@ -4487,6 +4487,11 @@ rimraf@^3.0.2:
   dependencies:
     glob "^7.1.3"
 
+robots-parser@^3.0.1:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/robots-parser/-/robots-parser-3.0.1.tgz#3d8a3cdfa8ac240cbb062a4bd16fcc0e0fb9ed23"
+  integrity sha512-s+pyvQeIKIZ0dx5iJiQk1tPLJAWln39+MI5jtM8wnyws+G5azk+dMnMX0qfbqNetKKNgcWWOdi0sfm+FbQbgdQ==
+
 rss-parser@^3.13.0:
   version "3.13.0"
   resolved "https://registry.yarnpkg.com/rss-parser/-/rss-parser-3.13.0.tgz#f1f83b0a85166b8310ec531da6fbaa53ff0f50f0"
