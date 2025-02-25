@@ -14,8 +14,9 @@
     "@semapps/solid": "1.0.10",
     "dotenv-flow": "^3.2.0",
     "ioredis": "^4.17.3",
-    "url-join": "^4.0.1",
-    "moleculer-repl": "^0.6.6"
+    "moleculer-repl": "^0.6.6",
+    "rss-parser": "^3.13.0",
+    "url-join": "^4.0.1"
   },
   "engines": {
     "node": ">=20"
