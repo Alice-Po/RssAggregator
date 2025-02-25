@@ -19,7 +19,7 @@ export default {
   dataModel: {
     types: ['as:Service'],
     container: {
-      'apods:RssFeed': '/rss-feeds'
+      'as:Service': '/data/as/service'
     }
   },
   translations: {
