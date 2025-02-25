@@ -464,7 +464,7 @@ module.exports = {
         await ctx.call('timer.set', {
           key: [resource.id, 'check'],
           time: new Date(),
-          actionName: 'rss-feeds.checkFeed',
+          actionName: 'rss.parseFeed',
           params: { feed: { ...resource, 'apods:url': feedUrl } }
         });
       } catch (error) {
