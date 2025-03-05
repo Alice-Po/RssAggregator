@@ -10,9 +10,8 @@ const RssFeedShowActions = () => (
 const RssFeedShow = () => (
   <Show actions={<RssFeedShowActions />}>
     <SimpleShowLayout>
-      <TextField source="apods:name" />
-      <TextField source="apods:url" />
-      <TextField source="apods:description" />
+      <TextField source="apods:url" label="Site URL" />
+      <TextField source="apods:feedUrl" label="RSS Feed URL" />
       <DateField source="dc:created" />
     </SimpleShowLayout>
   </Show>

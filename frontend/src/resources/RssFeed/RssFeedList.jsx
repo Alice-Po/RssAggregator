@@ -4,8 +4,8 @@ import { List, Datagrid, TextField, DateField, EditButton, ShowButton } from 're
 const RssFeedList = () => (
   <List sort={{ field: 'dc:created', order: 'DESC' }}>
     <Datagrid rowClick="show">
-      <TextField source="apods:name" />
       <TextField source="apods:url" />
+      <TextField source="apods:feedUrl" />
       <DateField source="dc:created" />
       <EditButton />
       <ShowButton />

@@ -13,10 +13,10 @@ module.exports = {
     type: 'as:Service',
     containerUri: '/data/as/service',
     userAgent: 'ActivityPods-RSS-Reader/1.0 (+https://activitypods.org/contact)',
-    cacheTime: 15 * 60 * 1000, // 15 minutes en millisecondes
+    cacheTime: 15 * 60 * 1000, // 15 minutes in milliseconds
     commonPaths: [
-      '/articles/feed', // Pour Mediapart
-      '/titres.rss', // Pour FranceTV Info
+      '/articles/feed', // For Mediapart
+      '/titres.rss', // For FranceTV Info
       '/feed',
       '/rss',
       '/atom',
@@ -28,51 +28,40 @@ module.exports = {
       '/blog/rss',
       '/rss/feed',
       '/index.xml',
-      '/rss/une.xml' // Pour Le Monde
+      '/rss/une.xml' // For Le Monde
     ]
   },
-  dependencies: ['pod-resources', 'app'],
-  async created() {
-    // Initialiser le cache
-    this.feedCache = new Map();
-  },
-  async started() {
-    this.logger.info('Checking if Service container exists...');
 
+  async created() {
+    this.logger.info('📡 RSS Service creation in progress...');
+    this.feedCache = new Map();
+    this.logger.info('💾 Cache initialized');
+  },
+
+  async started() {
+    this.logger.info('🚀 Starting RSS Service...');
     try {
       const podProviderUrl = 'http://localhost:3000';
-      this.logger.info(`Using pod provider: ${podProviderUrl}`);
+      this.logger.info(`🌐 Pod provider configured: ${podProviderUrl}`);
 
-      // Utiliser le contexte par défaut pour l'utilisateur 'tara'
-      const username = 'titi';
+      const username = 'test';
       const actorUri = urlJoin(podProviderUrl, username);
       const dataset = username;
+      this.logger.info(`👤 User: ${username}`);
+      this.logger.info(`🔗 Actor URI: ${actorUri}`);
 
-      this.logger.info(`Actor URI: ${actorUri}`);
-
-      // Le conteneur doit être dans l'espace de l'utilisateur
       const containerUri = urlJoin(podProviderUrl, username, 'data/as/service');
-      this.logger.info(`Container URI: ${containerUri}`);
+      this.logger.info(`📁 Container URI: ${containerUri}`);
 
-      // Récupérer la liste des feeds avec le contexte approprié
       const result = await this.broker.call(
         'pod-resources.list',
-        {
-          containerUri,
-          actorUri
-        },
-        {
-          meta: {
-            webId: actorUri,
-            dataset
-          }
-        }
+        { containerUri, actorUri },
+        { meta: { webId: actorUri, dataset } }
       );
-
-      this.logger.info('Container check result:', result);
+      this.logger.info('📋 Container check result:', result);
 
       if (!result.ok) {
-        this.logger.info('Creating Service container...');
+        this.logger.info('📂 Creating Service container...');
         await this.broker.call(
           'pod-resources.post',
           {
@@ -91,9 +80,9 @@ module.exports = {
             }
           }
         );
+        this.logger.info('✅ Container created successfully');
       }
 
-      // Lister et tester tous les feeds existants
       const feeds = await this.broker.call(
         'pod-resources.list',
         {
@@ -114,7 +103,7 @@ module.exports = {
 
       if (feeds.ok && feeds.body && feeds.body['ldp:contains']) {
         const resources = feeds.body['ldp:contains'];
-        this.logger.info(`Found ${resources.length} RSS feeds in pod`);
+        this.logger.info(`📊 Number of feeds found: ${resources.length}`);
         this.logger.info('Feeds found:', JSON.stringify(resources, null, 2));
 
         for (const feed of resources) {
@@ -130,16 +119,17 @@ module.exports = {
         this.logger.info('Full response:', JSON.stringify(feeds, null, 2));
       }
     } catch (error) {
-      this.logger.error('Error while checking/creating container:', error);
+      this.logger.error('❌ Error during startup:', error);
     }
   },
+
   actions: {
     /**
-     * Parse un flux RSS et retourne son contenu
+     * Parses an RSS feed and returns its content
      *
-     * @param {Object} ctx - Contexte Moleculer
-     * @param {Object} ctx.params.feed - Objet feed contenant l'URL du flux
-     * @returns {Object} Données du flux RSS parsé
+     * @param {Object} ctx - Moleculer context
+     * @param {Object} ctx.params.feed - Feed object containing the feed URL
+     * @returns {Object} Parsed RSS feed data
      */
     async parseFeed(ctx) {
       const { feed } = ctx.params;
@@ -211,11 +201,11 @@ module.exports = {
     },
 
     /**
-     * Trouve l'URL du flux RSS pour un site donné
+     * Finds the RSS feed URL for a given website
      *
-     * @param {Object} ctx - Contexte Moleculer
-     * @param {string} ctx.params.url - URL du site à analyser
-     * @returns {string} URL du flux RSS trouvé
+     * @param {Object} ctx - Moleculer context
+     * @param {string} ctx.params.url - Website URL to analyze
+     * @returns {string} Found RSS feed URL
      */
     async findRssFeed(ctx) {
       const { url } = ctx.params;
@@ -246,41 +236,51 @@ module.exports = {
       }
     }
   },
+
   methods: {
     /**
-     * Nettoie le XML pour corriger les erreurs courantes
+     * Checks if a URL is allowed to be accessed according to robots.txt rules
+     * Fetches and parses robots.txt file to determine if the URL can be crawled
      *
-     * @param {string} xml - XML brut à nettoyer
-     * @returns {string} XML nettoyé
+     * @param {string} url - URL to check against robots.txt rules
+     * @returns {Promise<boolean>} true if access is allowed or robots.txt is not found, false if explicitly forbidden
      */
-    cleanXML(xml) {
+    async checkRobotsRules(url) {
+      this.logger.info(`🤖 Checking robots rules for: ${url}`);
       try {
-        // Supprimer les caractères invalides XML
-        xml = xml.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+        const robotsUrl = new URL('/robots.txt', url).href;
+        this.logger.debug(`📎 Robots.txt URL: ${robotsUrl}`);
 
-        // Corriger les attributs sans valeur (ex: disabled> -> disabled="">)
-        xml = xml.replace(/(\s+[a-zA-Z-_]+)(>|\s+[a-zA-Z-_]+=)/g, '$1=""$2');
+        const response = await fetch(robotsUrl);
+        if (!response.ok) {
+          this.logger.info('ℹ️ No robots.txt found');
+          return true;
+        }
 
-        // Corriger les tags non fermés
-        xml = xml.replace(/<(img|br|hr|input|meta|link)([^>]*)(?<!\/)>/g, '<$1$2/>');
+        const robotsTxt = await response.text();
+        this.logger.debug('📝 Robots.txt content retrieved');
 
-        // Corriger les entités HTML mal formées
-        xml = xml.replace(/&(?!amp;|lt;|gt;|quot;|apos;|#\d+;|#x[0-9a-fA-F]+;)/g, '&amp;');
+        const robots = robotsParser(robotsUrl, robotsTxt);
+        const isAllowed = robots.isAllowed(url, this.settings.userAgent);
 
-        return xml;
+        this.logger.info(`${isAllowed ? '✅' : '❌'} Access ${isAllowed ? 'allowed' : 'forbidden'} by robots.txt`);
+        return isAllowed;
       } catch (error) {
-        this.logger.warn('Error while cleaning XML:', error);
-        return xml; // Retourner le XML original en cas d'erreur
+        this.logger.warn('⚠️ Error checking robots.txt:', error);
+        return true;
       }
     },
 
     /**
-     * Vérifie si une URL donnée est un flux RSS valide
+     * Checks if a given URL is a valid RSS feed
+     * Attempts to parse the URL as an RSS feed using the configured parser
      *
-     * @param {string} url - URL à vérifier
-     * @returns {Promise<boolean>} true si l'URL est un flux RSS valide, false sinon
+     * @param {string} url - URL to check
+     * @returns {Promise<boolean>} true if URL is a valid RSS feed, false otherwise
      */
     async checkRssFeed(url) {
+      this.logger.info(`🔍 Checking RSS feed: ${url}`);
+
       try {
         const parser = new Parser({
           headers: {
@@ -289,111 +289,117 @@ module.exports = {
           }
         });
 
+        this.logger.debug('⚙️ Parser configured, attempting to parse...');
         await parser.parseURL(url);
-        this.logger.info('Valid RSS feed found at:', url);
+
+        this.logger.info('✅ Valid RSS feed found at:', url);
         return true;
       } catch (error) {
-        this.logger.debug('URL is not a valid RSS feed:', url);
+        this.logger.warn('❌ Invalid or inaccessible URL:', url);
+        this.logger.debug('📝 Error details:', error.message);
         return false;
       }
     },
 
     /**
-     * Inspecte le HTML d'une page pour trouver les balises link RSS/Atom
+     * Inspects HTML page to find RSS/Atom link tags
      *
-     * @param {string} url - URL de la page à inspecter
-     * @returns {Promise<string|null>} URL du flux RSS si trouvé, null sinon
+     * @param {string} url - URL of the page to inspect
+     * @returns {Promise<string|null>} RSS feed URL if found, null otherwise
      */
     async htmlBaliseInspection(url) {
+      this.logger.info(`🔎 Inspecting HTML from: ${url}`);
       try {
-        // Récupérer le HTML de la page
         const response = await fetch(url, {
           headers: {
             'User-Agent': this.settings.userAgent,
             Accept: 'text/html'
           }
         });
+        this.logger.debug(`📥 HTTP response status: ${response.status}`);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const html = await response.text();
+        this.logger.debug('📄 HTML retrieved, searching for RSS tags...');
 
-        // Extraire la section head
         const head = html.match(/<head[^>]*>[\s\S]*?<\/head>/i)?.[0] || '';
+        this.logger.debug('👀 HEAD section extracted, analyzing RSS links...');
 
-        // Patterns pour trouver les liens RSS (ajout du flag 'g' pour global)
+        // Patterns pour trouver les liens RSS
         const rssPatterns = [
           /<link[^>]*rel=["']alternate["'][^>]*type=["']application\/rss\+xml["'][^>]*href=["']([^"']+)["'][^>]*>/gi,
           /<link[^>]*type=["']application\/rss\+xml["'][^>]*href=["']([^"']+)["'][^>]*>/gi,
           /<link[^>]*type=["']application\/atom\+xml["'][^>]*href=["']([^"']+)["'][^>]*>/gi
         ];
 
-        // Tester chaque pattern
         for (const pattern of rssPatterns) {
+          this.logger.debug('🔄 Testing new RSS pattern...');
           const matches = head.matchAll(pattern);
           for (const match of matches) {
             if (match && match[1]) {
               const feedUrl = new URL(match[1], url).href;
-              this.logger.info('Found RSS link in HTML:', feedUrl);
+              this.logger.info('🎯 RSS link found:', feedUrl);
 
-              // Vérifier si c'est un flux RSS valide
               if (await this.checkRssFeed(feedUrl)) {
+                this.logger.info('✅ Valid RSS feed confirmed:', feedUrl);
                 return feedUrl;
               }
             }
           }
-          // Réinitialiser lastIndex pour la prochaine utilisation
           pattern.lastIndex = 0;
         }
 
+        this.logger.info('❌ No valid RSS feed found in HTML');
         return null;
       } catch (error) {
-        this.logger.error('Error in HTML inspection:', error);
+        this.logger.error('💥 Error during HTML inspection:', error);
         return null;
       }
     },
 
     /**
-     * Teste les chemins communs pour trouver un flux RSS
+     * Tests common paths to find RSS feed
      *
-     * @param {string} url - URL de base du site
-     * @returns {Promise<string|null>} URL du flux RSS si trouvé, null sinon
+     * @param {string} url - Base website URL
+     * @returns {Promise<string|null>} RSS feed URL if found, null otherwise
      */
     async commonRssPathInspection(url) {
+      this.logger.info(`🔄 Testing common paths for: ${url}`);
       try {
         const baseUrl = new URL(url);
 
         for (const path of this.settings.commonPaths) {
           try {
-            const testUrl = new URL(path, baseUrl).href;
-            this.logger.debug('Testing common path:', testUrl);
+            const fullUrl = new URL(path, baseUrl).href;
+            this.logger.debug(`🔍 Testing path: ${fullUrl}`);
 
-            if (await this.checkRssFeed(testUrl)) {
-              this.logger.info('Found valid RSS feed at common path:', testUrl);
-              return testUrl;
+            if (await this.checkRssFeed(fullUrl)) {
+              this.logger.info('✅ RSS feed found at:', fullUrl);
+              return fullUrl;
             }
-          } catch (e) {
-            // Continuer avec le prochain chemin
-            continue;
+          } catch (error) {
+            this.logger.debug(`❌ Invalid path: ${path}`, error.message);
           }
         }
 
+        this.logger.info('❌ No common path resulted in a valid feed');
         return null;
       } catch (error) {
-        this.logger.error('Error in common path inspection:', error);
+        this.logger.error('💥 Error during path inspection:', error);
         return null;
       }
     },
 
     /**
-     * Gère la création d'un nouveau flux RSS
-     * Vérifie et corrige l'URL si nécessaire
+     * Handles creation of a new RSS feed
+     * Checks and corrects URL if needed
      *
-     * @param {Object} ctx - Contexte Moleculer
-     * @param {Object} resource - Ressource à créer
-     * @param {string} actorUri - URI de l'acteur
+     * @param {Object} ctx - Moleculer context
+     * @param {Object} resource - Resource to create
+     * @param {string} actorUri - Actor URI
      */
     async onCreate(ctx, resource, actorUri) {
       try {
@@ -402,7 +408,7 @@ module.exports = {
 
         // 1. Vérifier si l'URL est directement celle d'un flux RSS
         if (await this.checkRssFeed(feedUrl)) {
-          summary = `Flux RSS valide : ${feedUrl}`;
+          summary = `Valid RSS feed: ${feedUrl}`;
           this.logger.info(summary);
           // Dans ce cas, l'URL du flux est la même que l'URL originale
           await this.actions.patch(
@@ -417,12 +423,12 @@ module.exports = {
           );
         } else {
           // 2. Si ce n'est pas un flux RSS, essayer de trouver l'URL du flux
-          this.logger.info(`Recherche du flux RSS pour : ${feedUrl}`);
+          this.logger.info(`Searching RSS feed for: ${feedUrl}`);
           const foundUrl = await this.actions.findRssFeed({ url: feedUrl });
 
           if (foundUrl !== feedUrl && (await this.checkRssFeed(foundUrl))) {
             // Flux RSS trouvé à une autre URL
-            summary = `Flux RSS trouvé et validé : ${foundUrl}`;
+            summary = `RSS feed found and validated: ${foundUrl}`;
             this.logger.info(summary);
 
             // Stocker l'URL du flux dans apods:feedUrl
@@ -438,7 +444,7 @@ module.exports = {
             );
           } else {
             // Aucun flux RSS trouvé
-            summary = `⚠️ Aucun flux RSS trouvé pour : ${feedUrl}`;
+            summary = `⚠️ No RSS feed found for: ${feedUrl}`;
             this.logger.warn(summary);
           }
         }
@@ -467,7 +473,7 @@ module.exports = {
           params: {
             feed: {
               ...resource,
-              'apods:feedUrl': resource['apods:feedUrl'] || feedUrl
+              'apods:feedUrl': resource['apods:feedUrl'] || foundUrl
             }
           }
         });
@@ -475,12 +481,6 @@ module.exports = {
         this.logger.error('Error in onCreate:', error);
         throw error;
       }
-    },
-    async onUpdate(ctx, resource, actorUri) {
-      // Handle post-update actions
-    },
-    async onDelete(ctx, resource, actorUri) {
-      // Handle post-delete actions
     }
   }
 };
