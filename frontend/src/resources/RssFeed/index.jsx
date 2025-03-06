@@ -10,8 +10,7 @@ export default {
     show: RssFeedShow,
     create: RssFeedCreate,
     edit: RssFeedEdit,
-    icon: RssFeedIcon,
-    recordRepresentation: 'apods:name'
+    icon: RssFeedIcon
   },
   dataModel: {
     types: ['as:Service'],
@@ -19,10 +18,10 @@ export default {
       'as:Service': '/data/as/service'
     },
     fields: {
-      'apods:url': {
+      'as:url': {
         type: 'string'
       },
-      'apods:feedUrl': {
+      'as:link': {
         type: 'string'
       }
     }
@@ -31,16 +30,16 @@ export default {
     fr: {
       name: 'Flux RSS |||| Flux RSS',
       fields: {
-        'apods:url': 'URL du site',
-        'apods:feedUrl': 'URL du flux RSS',
+        'as:url': 'URL du site',
+        'as:link': 'URL du flux RSS',
         'dc:created': "Date d'ajout"
       }
     },
     en: {
       name: 'RSS Feed |||| RSS Feeds',
       fields: {
-        'apods:url': 'Website URL',
-        'apods:feedUrl': 'RSS Feed URL',
+        'as:url': 'Website URL',
+        'as:link': 'RSS Feed URL',
         'dc:created': 'Creation date'
       }
     }

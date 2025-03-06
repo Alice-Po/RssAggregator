@@ -152,3 +152,71 @@ this.logger.info(`🌐 Pod provider configuré: ${podProviderUrl}`);
 ## Help with test implementation !
 
 I just want to create this rss micro-service with TDD way, but I need help...
+
+## Make stop don't stop all containers
+
+I want to stop only the rss service and not all containers.
+
+````bash
+alice@maggie:~/projets/aggregator$ make start
+docker compose -f docker-compose-dev.yml  --env-file .env --env-file .env.local up -d
+[+] Running 5/6
+ ✔ Container aggregator-fuseki-1                 Started                                                                                                                                                         1.5s
+ ✔ Container aggregator-mailcatcher-1            Running                                                                                                                                                         0.0s
+ ✔ Container aggregator-redis-1                  Started                                                                                                                                                         1.2s
+ ✔ Container aggregator-activitypods-backend-1   Running                                                                                                                                                         0.0s
+ ⠴ Container aggregator-arena-1                  Starting                                                                                                                                                        1.5s
+ ✔ Container aggregator-activitypods-frontend-1  Running                                                                                                                                                         0.0s
+Error response from daemon: driver failed programming external connectivity on endpoint aggregator-arena-1 (7ce8bf6d6b43254b241611029d7a40838e20b75431f7e58123f99441a81e8e2c): Bind for 0.0.0.0:4567 failed: port is already allocated
+make: *** [Makefile:10 : start] Erreur 1
+alice@maggie:~/projets/aggregator$ make stop
+docker compose -f docker-compose-dev.yml  --env-file .env --env-file .env.local kill
+[+] Killing 5/5
+ ✔ Container aggregator-activitypods-frontend-1  Killed                                                                                                                                         0.9s
+ ✔ Container aggregator-mailcatcher-1            Killed                                                                                                                                         1.2s
+ ✔ Container aggregator-activitypods-backend-1   Killed                                                                                                                                         0.6s
+ ✔ Container aggregator-fuseki-1                 Killed                                                                                                                                         1.2s
+ ✔ Container aggregator-redis-1                  Killed                                                                                                                                         1.0s
+docker compose -f docker-compose-dev.yml  --env-file .env --env-file .env.local rm -fv
+Going to remove aggregator-activitypods-frontend-1, aggregator-activitypods-backend-1, aggregator-arena-1, aggregator-fuseki-1, aggregator-redis-1, aggregator-mailcatcher-1
+[+] Removing 6/0
+ ✔ Container aggregator-mailcatcher-1            Removed                                                                                                                                        0.1s
+ ✔ Container aggregator-arena-1                  Removed                                                                                                                                        0.1s
+ ✔ Container aggregator-activitypods-frontend-1  Removed                                                                                                                                        0.1s
+ ✔ Container aggregator-fuseki-1                 Removed                                                                                                                                        0.1s
+ ✔ Container aggregator-redis-1                  Removed                                                                                                                                        0.1s
+ ✔ Container aggregator-activitypods-backend-1   Removed                                                                                                                                        0.1s
+alice@maggie:~/projets/aggregator$ docker ps
+CONTAINER ID   IMAGE                  COMMAND                  CREATED        STATUS         PORTS                                       NAMES
+730c6dae8c8b   activitypods/arena     "/sbin/tini -- npm s…"   8 days ago     Up 6 minutes   0.0.0.0:4567->4567/tcp, :::4567->4567/tcp   arena
+4e2aa9bf4396   activitypods/backend   "docker-entrypoint.s…"   9 days ago     Up 6 minutes                                               app-boilerplate-1-activitypods-backend-1
+3aeeaa5cb9ac   a608e48bb0ae           "docker-entrypoint.s…"   3 months ago   Up 6 minutes                                               activitypod-boilerplate-activitypods-backend-1
+alice@maggie:~/projets/aggregator$ docker kill 4e2aa9bf4396 3aeeaa5cb9ac 730c6dae8c8
+4e2aa9bf4396
+3aeeaa5cb9ac
+730c6dae8c8
+alice@maggie:~/projets/aggregator$ make start
+docker compose -f docker-compose-dev.yml  --env-file .env --env-file .env.local up -d
+[+] Running 6/6
+ ✔ Container aggregator-redis-1                  Started                                                                                                                                        1.9s
+ ✔ Container aggregator-fuseki-1                 Started                                                                                                                                        1.9s
+ ✔ Container aggregator-mailcatcher-1            Started                                                                                                                                        1.9s
+ ✔ Container aggregator-arena-1                  Started                                                                                                                                        3.3s
+ ✔ Container aggregator-activitypods-backend-1   Started                                                                                                                                        2.4s
+ ✔ Container aggregator-activitypods-frontend-1  Started                                                                                                                                        4.2s
+alice@maggie:~/projets/aggregator$ ^C```
+````
+
+## To delete test data
+
+```bash
+PREFIX as: <https://www.w3.org/ns/activitystreams#>
+PREFIX apods: <http://localhost:3000/.well-known/context.jsonld#>
+PREFIX dc: <http://purl.org/dc/terms/>
+
+DELETE
+WHERE {
+  ?service a as:Service .
+  ?service ?predicate ?object .
+}
+```
