@@ -31,7 +31,10 @@ module.exports = {
       '/rss/une.xml' // For Le Monde
     ]
   },
-
+  created() {
+    // Initialiser le cache lors de la création du service
+    this.feedCache = new Map();
+  },
   async started() {
     this.logger.info('🚀 RSS Service starting...');
 
@@ -67,33 +70,13 @@ module.exports = {
         const resources = result.body['ldp:contains'];
         this.logger.info(`📚 Found ${resources.length} RSS feeds in pod`);
 
-        // // Traiter chaque ressource
-        // for (const resource of resources) {
-        //   // Gérer la migration des anciens prédicats vers les nouveaux
-        //   const sourceUrl = resource['as:url'] || resource['apods:url'];
-        //   const feedUrl = resource['as:link'] || resource['apods:feedUrl'];
-
-        //   this.logger.info(`🔄 Processing existing feed: ${sourceUrl}`);
-        //   try {
-        //     await this.onCreate(
-        //       {
-        //         meta: {
-        //           webId: actorUri,
-        //           dataset,
-        //           host: new URL(podProviderUrl).host
-        //         }
-        //       },
-        //       {
-        //         ...resource,
-        //         'as:url': sourceUrl,
-        //         'as:link': feedUrl
-        //       },
-        //       actorUri
-        //     );
-        //   } catch (error) {
-        //     this.logger.error(`❌ Error processing feed ${sourceUrl}:`, error);
-        //   }
-        // }
+        //display parse content with parseFeed
+        for (let i = 0; i < resources.length; i++) {
+          this.logger.info(`📚 We parse ${resources[i]} `);
+          // Correction ici : utiliser this.parseFeed au lieu de parseFeed
+          const parsedFeed = await this.parseFeed(resources[i]);
+          this.logger.info(`📚 Donne : `, parsedFeed);
+        }
       } else {
         this.logger.info(' No RSS feeds found in pod');
       }
@@ -223,6 +206,69 @@ module.exports = {
       } catch (error) {
         this.logger.error('💥 commonRssPathInspection: Error during path inspection:', error);
         return null;
+      }
+    },
+
+    /**
+     * Parses an RSS feed and returns its content
+     *
+     * @param {Object} ctx - Moleculer context
+     * @param {Object} ctx.params.feed - Feed object containing the feed URL
+     * @returns {Object} Parsed RSS feed data
+     */
+    async parseFeed(feed) {
+      let feedUrl = feed['as:link'];
+
+      try {
+        // Configuration du parser avec notre User-Agent éthique
+        const parser = new Parser({
+          headers: {
+            'User-Agent': this.settings.userAgent,
+            Accept: 'application/rss+xml,application/xml,application/atom+xml,text/xml'
+          },
+          customFields: {
+            item: [
+              ['media:content', 'media:content'],
+              ['media:thumbnail', 'media:thumbnail']
+            ]
+          }
+        });
+
+        // Vérifier le cache
+        const cachedData = this.feedCache.get(feedUrl);
+        if (cachedData && Date.now() - cachedData.timestamp < this.settings.cacheTime) {
+          this.logger.info('Returning cached feed data');
+          return cachedData.data;
+        }
+
+        this.logger.info(`Fetching RSS feed: ${feedUrl}`);
+        const feedData = await parser.parseURL(feedUrl);
+
+        // Mettre en cache
+        this.feedCache.set(feedUrl, {
+          timestamp: Date.now(),
+          data: feedData
+        });
+
+        // Afficher les données parsées dans les logs
+        this.logger.info('Feed parsed successfully:', {
+          title: feedData.title,
+          description: feedData.description,
+          link: feedData.link,
+          lastBuildDate: feedData.lastBuildDate,
+          itemCount: feedData.items?.length || 0,
+          latestItems: feedData.items?.slice(0, 3).map(item => ({
+            title: item.title,
+            link: item.link,
+            pubDate: item.pubDate,
+            creator: item.creator || item.author
+          }))
+        });
+
+        return feedData;
+      } catch (error) {
+        this.logger.error('Error while parsing feed:', error);
+        throw error;
       }
     }
   }
