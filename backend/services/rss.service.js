@@ -77,6 +77,11 @@ module.exports = {
           const parsedFeed = await this.parseFeed(resources[i]);
           this.logger.info(`📚 Donne : `, parsedFeed);
         }
+        this.logger.info(`📚 Found ${resources.length} RSS feeds in pod`);
+
+        const allArticles = await this.getAllArticles(actorUri, podProviderUrl, dataset);
+        this.logger.info(` Found ${allArticles.length} articles in pod`);
+        this.logger.info(`📚 Articles : `, allArticles);
       } else {
         this.logger.info(' No RSS feeds found in pod');
       }
@@ -268,6 +273,64 @@ module.exports = {
         return feedData;
       } catch (error) {
         this.logger.error('Error while parsing feed:', error);
+        throw error;
+      }
+    },
+    // Nouvelle méthode pour récupérer tous les articles
+    async getAllArticles(actorUri, podProviderUrl, dataset) {
+      try {
+        // Récupérer tous les feeds
+        const feeds = await this.broker.call(
+          'pod-resources.list',
+          {
+            containerUri: `${actorUri}/data/as/service`,
+            filters: {
+              type: this.settings.type
+            },
+            actorUri
+          },
+          {
+            meta: {
+              webId: actorUri,
+              dataset,
+              host: new URL(podProviderUrl).host
+            }
+          }
+        );
+
+        // Tableau pour stocker tous les articles
+        let allArticles = [];
+
+        // Parcourir chaque feed et récupérer ses articles
+        for (const feed of feeds.body['ldp:contains']) {
+          try {
+            const feedData = await this.parseFeed(feed);
+            if (feedData && feedData.items) {
+              // Ajouter la source à chaque article
+              const articlesWithSource = feedData.items.map(item => ({
+                ...item,
+                feedSource: {
+                  title: feedData.title,
+                  url: feed['as:link'],
+                  siteUrl: feed['as:url']
+                },
+                // Normaliser la date de publication
+                pubDate: new Date(item.pubDate || item.isoDate).getTime()
+              }));
+              allArticles = [...allArticles, ...articlesWithSource];
+            }
+          } catch (error) {
+            this.logger.error(`Error parsing feed ${feed['as:link']}:`, error);
+            // Continue avec le prochain feed même si celui-ci échoue
+          }
+        }
+
+        // Trier tous les articles par date
+        allArticles.sort((a, b) => b.pubDate - a.pubDate);
+
+        return allArticles;
+      } catch (error) {
+        this.logger.error('Error getting all articles:', error);
         throw error;
       }
     }
