@@ -220,3 +220,11 @@ WHERE {
   ?service ?predicate ?object .
 }
 ```
+
+graph LR
+Pod[Pod ActivityPods] --> |stocke| URLs[URLs RSS]
+URLs --> |lues par| Service[Service RSS]
+Service --> |parse| Parser[Parser RSS]
+Parser --> |stocke dans| Cache[Cache Service]
+Cache --> |retourne| Articles[Articles agrégés]
+Articles --> |affichés dans| UI[Interface utilisateur]

@@ -7,7 +7,7 @@ import i18nProvider from './config/i18nProvider';
 import ontologies from './config/ontologies.json';
 import Layout from './Layout';
 import * as resources from './resources';
-
+import ArticlesFeed from './components/ArticlesFeed';
 // If a custom Pod provider is defined, use it instead of loading all available Pod providers
 const MyLoginPage = props => (
   <LoginPage
@@ -34,6 +34,9 @@ const App = () => (
       requireAuth
       disableTelemetry
     >
+      <CustomRoutes>
+        <Route path="/home" element={<ArticlesFeed />} />
+      </CustomRoutes>{' '}
       {Object.entries(resources).map(([key, resource]) => (
         <Resource key={key} name={key} {...resource.config} />
       ))}

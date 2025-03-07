@@ -13,6 +13,7 @@ module.exports = {
   settings: {
     type: 'Service',
     containerUri: '/data/as/service',
+    acceptedActions: ['GetArticles'], // Déclarer l'action acceptée
     userAgent: 'ActivityPods-RSS-Reader/1.0 (+https://activitypods.org/contact)',
     commonPaths: [
       '/articles/feed', // For Mediapart
@@ -89,7 +90,42 @@ module.exports = {
       this.logger.error('❌ Error during service initialization:', error);
     }
   },
+  actions: {
+    async GetArticles(ctx) {
+      const { webId, dataset, podProviderUrl } = ctx.meta;
+      const { actor } = ctx.params; // L'acteur qui demande les articles
 
+      this.logger.info('GetArticles activity received from:', actor);
+
+      try {
+        // Utiliser getAllArticles pour récupérer les articles
+        const articles = await this.getAllArticles(actor, podProviderUrl, dataset);
+
+        this.logger.info(`Found ${articles.length} articles for ${actor}`);
+
+        // Retourner une activité de type Note avec les articles
+        return {
+          '@context': 'https://www.w3.org/ns/activitystreams',
+          type: 'Note',
+          actor: this.settings.baseUri,
+          to: actor,
+          content: 'Articles retrieved successfully',
+          articles: articles.map(article => ({
+            type: 'Article',
+            id: article.guid || article.link,
+            'as:title': article.title,
+            'as:content': article.content || article.contentSnippet,
+            'as:url': article.link,
+            published: article.pubDate,
+            attributedTo: article.feedSource?.title
+          }))
+        };
+      } catch (error) {
+        this.logger.error('Error in GetArticles activity:', error);
+        throw error;
+      }
+    }
+  },
   methods: {
     // Cette méthode est automatiquement convertie en handler d'activité Create
     async onCreate(ctx, resource, actorUri) {
